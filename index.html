@@ -1,0 +1,366 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Calculator</title>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@300;400;500&family=Syne:wght@700;800&display=swap" rel="stylesheet"/>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg: #0d0d0d;
+      --panel: #161616;
+      --border: #2a2a2a;
+      --accent: #e8ff47;
+      --accent-dark: #b8cc22;
+      --text: #f0f0f0;
+      --muted: #555;
+      --op-bg: #1f1f1f;
+      --op-hover: #2e2e2e;
+      --eq-shadow: 0 0 24px #e8ff4755;
+    }
+
+    body {
+      background: var(--bg);
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-family: 'DM Mono', monospace;
+      overflow: hidden;
+    }
+
+    /* subtle grid background */
+    body::before {
+      content: '';
+      position: fixed;
+      inset: 0;
+      background-image:
+        linear-gradient(var(--border) 1px, transparent 1px),
+        linear-gradient(90deg, var(--border) 1px, transparent 1px);
+      background-size: 40px 40px;
+      opacity: 0.3;
+      pointer-events: none;
+    }
+
+    .wrapper {
+      position: relative;
+      z-index: 1;
+    }
+
+    .label {
+      font-family: 'Syne', sans-serif;
+      font-size: 11px;
+      font-weight: 800;
+      letter-spacing: 0.25em;
+      color: var(--muted);
+      text-transform: uppercase;
+      margin-bottom: 16px;
+      padding-left: 2px;
+    }
+
+    .calc {
+      background: var(--panel);
+      border: 1px solid var(--border);
+      border-radius: 20px;
+      padding: 24px;
+      width: 320px;
+      box-shadow: 0 32px 80px rgba(0,0,0,0.6), 0 0 0 1px #1e1e1e;
+      animation: rise 0.5s cubic-bezier(0.22,1,0.36,1) both;
+    }
+
+    @keyframes rise {
+      from { opacity: 0; transform: translateY(30px) scale(0.96); }
+      to   { opacity: 1; transform: translateY(0) scale(1); }
+    }
+
+    /* Display */
+    .display {
+      background: #0a0a0a;
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 20px 18px 14px;
+      margin-bottom: 20px;
+      min-height: 100px;
+      display: flex;
+      flex-direction: column;
+      justify-content: flex-end;
+      align-items: flex-end;
+      gap: 4px;
+      overflow: hidden;
+    }
+
+    .display .history {
+      font-size: 12px;
+      color: var(--muted);
+      min-height: 18px;
+      text-align: right;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+      max-width: 100%;
+    }
+
+    .display .current {
+      font-size: 38px;
+      font-weight: 300;
+      color: var(--text);
+      letter-spacing: -1px;
+      line-height: 1;
+      text-align: right;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+      max-width: 100%;
+      transition: color 0.1s;
+    }
+
+    .display .current.flash {
+      color: var(--accent);
+    }
+
+    /* Grid */
+    .buttons {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 10px;
+    }
+
+    /* Base button */
+    button {
+      border: none;
+      border-radius: 10px;
+      font-family: 'DM Mono', monospace;
+      font-size: 17px;
+      font-weight: 400;
+      cursor: pointer;
+      height: 64px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: transform 0.08s, background 0.12s, box-shadow 0.12s;
+      position: relative;
+      outline: none;
+      user-select: none;
+      -webkit-tap-highlight-color: transparent;
+    }
+
+    button:active {
+      transform: scale(0.92);
+    }
+
+    /* Number buttons */
+    .btn-num {
+      background: #1e1e1e;
+      color: var(--text);
+      border: 1px solid #252525;
+    }
+    .btn-num:hover {
+      background: #272727;
+      border-color: #333;
+    }
+
+    /* Zero spans 2 cols */
+    .btn-zero {
+      grid-column: span 2;
+      justify-content: flex-start;
+      padding-left: 22px;
+    }
+
+    /* Function buttons (AC, +/-, %) */
+    .btn-fn {
+      background: var(--op-bg);
+      color: #ccc;
+      border: 1px solid var(--border);
+      font-size: 15px;
+    }
+    .btn-fn:hover {
+      background: var(--op-hover);
+    }
+
+    /* Operator buttons */
+    .btn-op {
+      background: #232323;
+      color: var(--accent);
+      border: 1px solid #2e2e2e;
+      font-size: 20px;
+    }
+    .btn-op:hover {
+      background: #2b2b2b;
+      border-color: #3a3a3a;
+    }
+    .btn-op.active {
+      background: #282d10;
+      border-color: #5a6618;
+    }
+
+    /* Equals button */
+    .btn-eq {
+      background: var(--accent);
+      color: #0d0d0d;
+      font-size: 22px;
+      font-weight: 500;
+      box-shadow: var(--eq-shadow);
+    }
+    .btn-eq:hover {
+      background: #f5ff6a;
+      box-shadow: 0 0 32px #e8ff4780;
+    }
+
+    /* Dot */
+    .btn-dot {
+      font-size: 22px;
+      font-weight: 700;
+    }
+  </style>
+</head>
+<body>
+<div class="wrapper">
+  <div class="label">Calculator</div>
+  <div class="calc">
+    <div class="display">
+      <div class="history" id="history"></div>
+      <div class="current" id="current">0</div>
+    </div>
+    <div class="buttons">
+      <!-- Row 1 -->
+      <button class="btn-fn"  onclick="clear_()">AC</button>
+      <button class="btn-fn"  onclick="toggleSign()">+/−</button>
+      <button class="btn-fn"  onclick="percent()">%</button>
+      <button class="btn-op" id="op-÷" onclick="setOp('÷')">÷</button>
+
+      <!-- Row 2 -->
+      <button class="btn-num" onclick="digit('7')">7</button>
+      <button class="btn-num" onclick="digit('8')">8</button>
+      <button class="btn-num" onclick="digit('9')">9</button>
+      <button class="btn-op" id="op-×" onclick="setOp('×')">×</button>
+
+      <!-- Row 3 -->
+      <button class="btn-num" onclick="digit('4')">4</button>
+      <button class="btn-num" onclick="digit('5')">5</button>
+      <button class="btn-num" onclick="digit('6')">6</button>
+      <button class="btn-op" id="op-−" onclick="setOp('−')">−</button>
+
+      <!-- Row 4 -->
+      <button class="btn-num" onclick="digit('1')">1</button>
+      <button class="btn-num" onclick="digit('2')">2</button>
+      <button class="btn-num" onclick="digit('3')">3</button>
+      <button class="btn-op" id="op-+" onclick="setOp('+')">+</button>
+
+      <!-- Row 5 -->
+      <button class="btn-num btn-zero btn-dot" onclick="digit('0')">0</button>
+      <button class="btn-num btn-dot" onclick="dot()">.</button>
+      <button class="btn-eq"  onclick="equals()">=</button>
+    </div>
+  </div>
+</div>
+
+<script>
+  let cur = '0', prev = null, op = null, fresh = false;
+
+  const $cur  = document.getElementById('current');
+  const $hist = document.getElementById('history');
+
+  function render() {
+    $cur.textContent = cur;
+    // shrink font for long numbers
+    $cur.style.fontSize = cur.length > 10 ? '24px' : cur.length > 7 ? '30px' : '38px';
+  }
+
+  function flash() {
+    $cur.classList.add('flash');
+    setTimeout(() => $cur.classList.remove('flash'), 180);
+  }
+
+  function highlightOp(o) {
+    document.querySelectorAll('.btn-op').forEach(b => b.classList.remove('active'));
+    if (o) {
+      const el = document.getElementById('op-' + o);
+      if (el) el.classList.add('active');
+    }
+  }
+
+  function digit(d) {
+    if (fresh) { cur = d; fresh = false; }
+    else cur = cur === '0' ? d : cur + d;
+    if (cur.length > 12) cur = cur.slice(0, 12);
+    render();
+  }
+
+  function dot() {
+    if (fresh) { cur = '0.'; fresh = false; }
+    else if (!cur.includes('.')) cur += '.';
+    render();
+  }
+
+  function clear_() {
+    cur = '0'; prev = null; op = null; fresh = false;
+    $hist.textContent = '';
+    highlightOp(null);
+    render();
+  }
+
+  function toggleSign() {
+    cur = cur.startsWith('-') ? cur.slice(1) : (cur !== '0' ? '-' + cur : cur);
+    render();
+  }
+
+  function percent() {
+    cur = String(parseFloat(cur) / 100);
+    render();
+  }
+
+  function setOp(o) {
+    if (op && !fresh) calculate(true);
+    prev = parseFloat(cur);
+    op = o;
+    fresh = true;
+    $hist.textContent = `${prev} ${op}`;
+    highlightOp(o);
+  }
+
+  function calculate(chaining) {
+    if (op === null || prev === null) return;
+    const a = prev, b = parseFloat(cur);
+    let result;
+    switch(op) {
+      case '+': result = a + b; break;
+      case '−': result = a - b; break;
+      case '×': result = a * b; break;
+      case '÷': result = b !== 0 ? a / b : 'Error'; break;
+    }
+    if (!chaining) {
+      $hist.textContent = `${a} ${op} ${b} =`;
+      flash();
+    }
+    cur = result === 'Error' ? 'Error' : String(+result.toFixed(10));
+    if (!chaining) { op = null; prev = null; highlightOp(null); }
+    fresh = true;
+    render();
+  }
+
+  function equals() { calculate(false); }
+
+  // Keyboard support
+  document.addEventListener('keydown', e => {
+    if (e.key >= '0' && e.key <= '9') digit(e.key);
+    else if (e.key === '.') dot();
+    else if (e.key === '+') setOp('+');
+    else if (e.key === '-') setOp('−');
+    else if (e.key === '*') setOp('×');
+    else if (e.key === '/') { e.preventDefault(); setOp('÷'); }
+    else if (e.key === '%') percent();
+    else if (e.key === 'Enter' || e.key === '=') equals();
+    else if (e.key === 'Escape') clear_();
+    else if (e.key === 'Backspace') {
+      if (cur.length > 1) cur = cur.slice(0, -1);
+      else cur = '0';
+      render();
+    }
+  });
+
+  render();
+</script>
+</body>
+</html>
